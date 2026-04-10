@@ -1,5 +1,5 @@
 import unittest
-from htmlnode import HTMLNode, LeafNode
+from htmlnode import HTMLNode, LeafNode, ParentNode
 
 
 class TestHTMLNode(unittest.TestCase):
@@ -60,6 +60,35 @@ class TestHTMLNode(unittest.TestCase):
     def test_leaf_repr(self):
         node = LeafNode("p", "Hello", {"class": "text"})
         self.assertEqual(repr(node), "LeafNode(p, Hello, {'class': 'text'})")
+
+    def test_empty_children(self):
+        node = ParentNode("div", [])
+        self.assertEqual(node.to_html(), "<div></div>")
+
+    def test_missing_children(self):
+        node = ParentNode("div", None)
+        with self.assertRaises(ValueError):
+            node.to_html()
+
+    def test_missing_tag(self):
+        node = ParentNode(None, [])
+        with self.assertRaises(ValueError):
+            node.to_html()
+
+    def test_deep_nesting(self):
+        node = ParentNode(
+            "div",
+            [
+                ParentNode(
+                    "p",
+                    [
+                        LeafNode("b", "Bold"),
+                        LeafNode(None, " text"),
+                    ],
+                )
+            ],
+        )
+        self.assertEqual(node.to_html(), "<div><p><b>Bold</b> text</p></div>")
 
 
 if __name__ == "__main__":
