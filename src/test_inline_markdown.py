@@ -5,6 +5,8 @@ from inline_markdown import (
     split_nodes_delimiter,
     extract_markdown_images,
     extract_markdown_links,
+    split_nodes_image,
+    split_nodes_link,
 )
 
 
@@ -97,6 +99,31 @@ class TestInlineMarkdown(unittest.TestCase):
             [("link", "url2")],
             matches,
         )
+
+    def test_multiple_image(self):
+        node = TextNode("![a](u1) middle ![b](u2)", TextType.TEXT)
+        result = split_nodes_image([node])
+
+        self.assertEqual(len(result), 3)
+        self.assertEqual(result[0].text, "a")
+        self.assertEqual(result[2].text, "b")
+
+    def test_no_image(self):
+        node = TextNode("just text", TextType.TEXT)
+        result = split_nodes_image([node])
+        self.assertEqual(result, [node])
+
+    def test_links_and_images(self):
+        node = TextNode(
+            "text ![img](url1) and [link](url2)",
+            TextType.TEXT,
+        )
+
+        nodes = split_nodes_image([node])
+        nodes = split_nodes_link(nodes)
+
+        self.assertEqual(nodes[1].text_type, TextType.IMAGE)
+        self.assertEqual(nodes[3].text_type, TextType.LINK)
 
 
 if __name__ == "__main__":
