@@ -38,6 +38,27 @@ This is the same paragraph on a new line
         md = "\n\nHello\n\n\nWorld\n\n"
         self.assertEqual(markdown_to_blocks(md), ["Hello", "World"])
 
+    def test_code_block_with_blank_lines_stays_one_block(self):
+        md = """
+Before
+
+```python
+print("one")
+
+print("two")
+```
+
+After
+"""
+        self.assertEqual(
+            markdown_to_blocks(md),
+            [
+                "Before",
+                '```python\nprint("one")\n\nprint("two")\n```',
+                "After",
+            ],
+        )
+
 
 class TestBlockTypes(unittest.TestCase):
 
@@ -49,6 +70,13 @@ class TestBlockTypes(unittest.TestCase):
 
     def test_code(self):
         block = "```\ncode here\n```"
+        self.assertEqual(
+            block_to_block_type(block),
+            BlockType.CODE,
+        )
+
+    def test_code_with_language_marker(self):
+        block = "```python\nprint('hi')\n```"
         self.assertEqual(
             block_to_block_type(block),
             BlockType.CODE,
@@ -122,6 +150,22 @@ the **same** even with inline stuff
         self.assertEqual(
             html,
             "<div><pre><code>This is text that _should_ remain\nthe **same** even with inline stuff\n</code></pre></div>",
+        )
+
+    def test_codeblock_with_language_marker_and_blank_line(self):
+        md = """
+```python
+print("<tag>")
+
+print("done")
+```
+"""
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+
+        self.assertEqual(
+            html,
+            "<div><pre><code>print(&quot;&lt;tag&gt;&quot;)\n\nprint(&quot;done&quot;)\n</code></pre></div>",
         )
 
     def test_heading(self):

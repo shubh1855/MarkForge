@@ -46,6 +46,24 @@ class TestTextNodeToHTML(unittest.TestCase):
         self.assertEqual(html_node.props["src"], "https://img.com")
         self.assertEqual(html_node.props["alt"], "alt text")
 
+    def test_rendered_nodes_escape_html(self):
+        text_node = TextNode("<script>", TextType.TEXT)
+        link_node = TextNode("Click <here>", TextType.LINK, 'https://x.com?a=1&b="2"')
+        image_node = TextNode('alt "text"', TextType.IMAGE, "https://img.com?q=1&x=2")
+
+        self.assertEqual(
+            text_node_to_html_node(text_node).to_html(),
+            "&lt;script&gt;",
+        )
+        self.assertEqual(
+            text_node_to_html_node(link_node).to_html(),
+            '<a href="https://x.com?a=1&amp;b=&quot;2&quot;">Click &lt;here&gt;</a>',
+        )
+        self.assertEqual(
+            text_node_to_html_node(image_node).to_html(),
+            '<img src="https://img.com?q=1&amp;x=2" alt="alt &quot;text&quot;">',
+        )
+
     def test_invalid_type(self):
         class FakeType:
             pass

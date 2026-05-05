@@ -57,6 +57,28 @@ class TestHTMLNode(unittest.TestCase):
         node = LeafNode("a", "Click me", {"href": "https://google.com"})
         self.assertEqual(node.to_html(), '<a href="https://google.com">Click me</a>')
 
+    def test_leaf_to_html_escapes_text(self):
+        node = LeafNode("p", '5 < 7 & "ok"')
+        self.assertEqual(node.to_html(), "<p>5 &lt; 7 &amp; &quot;ok&quot;</p>")
+
+    def test_leaf_to_html_escapes_plain_text(self):
+        node = LeafNode(None, "x < y & z")
+        self.assertEqual(node.to_html(), "x &lt; y &amp; z")
+
+    def test_props_to_html_escapes_attributes(self):
+        node = HTMLNode("a", "Hello", None, {"href": 'https://x.com?a=1&b="2"'})
+        self.assertEqual(
+            node.props_to_html(),
+            ' href="https://x.com?a=1&amp;b=&quot;2&quot;"',
+        )
+
+    def test_img_renders_as_void_element(self):
+        node = LeafNode("img", "", {"src": "/img.png", "alt": 'A "quote"'})
+        self.assertEqual(
+            node.to_html(),
+            '<img src="/img.png" alt="A &quot;quote&quot;">',
+        )
+
     def test_leaf_repr(self):
         node = LeafNode("p", "Hello", {"class": "text"})
         self.assertEqual(repr(node), "LeafNode(p, Hello, {'class': 'text'})")

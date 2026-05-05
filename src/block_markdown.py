@@ -15,14 +15,30 @@ class BlockType(Enum):
 
 
 def markdown_to_blocks(markdown):
-    blocks = markdown.split("\n\n")
-    filtered_blocks = []
-    for block in blocks:
-        if block == "":
+    blocks = []
+    current_lines = []
+    in_code_block = False
+
+    for line in markdown.split("\n"):
+        stripped_line = line.strip()
+
+        if stripped_line.startswith("```"):
+            in_code_block = not in_code_block
+            current_lines.append(line)
             continue
-        block = block.strip()
-        filtered_blocks.append(block)
-    return filtered_blocks
+
+        if stripped_line == "" and not in_code_block:
+            if current_lines:
+                blocks.append("\n".join(current_lines).strip())
+                current_lines = []
+            continue
+
+        current_lines.append(line)
+
+    if current_lines:
+        blocks.append("\n".join(current_lines).strip())
+
+    return blocks
 
 
 def block_to_block_type(block):
@@ -114,7 +130,11 @@ def heading_to_html_node(block):
 
 
 def code_to_html_node(block):
-    text = block[4:-3]
+    lines = block.split("\n")
+    text = "\n".join(lines[1:-1])
+
+    if text:
+        text += "\n"
 
     raw = TextNode(text, TextType.TEXT)
     child = text_node_to_html_node(raw)
